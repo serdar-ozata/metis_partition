@@ -20,18 +20,18 @@ idx_t* partitionWithMetis(SparseMat&m, idx_t nParts) {
     idx_t nCon = 1;  // Number of balancing constraints
     idx_t noEdgeCut = 0;
     idx_t *partition = new idx_t[m.rows];
+    int numflag = 0;
     idx_t flag = 2;
     if (m.adjwgt != NULL) {
         flag |= 1;
     }
-    int numflag = 0;
     MPI_Comm comm = MPI_COMM_WORLD;
     real_t* tpwgts = new real_t[nParts * nCon];
     for (int i = 0; i < nParts; ++i) {
         tpwgts[i] = 1.0 / nParts;
     }
-    real_t ubvec = 1.001;
-    idx_t options[1] = {0};
+    real_t ubvec = {1.05};
+    idx_t options[3] = {0, 0, 0};
     int ret = ParMETIS_V3_PartKway(m.vtxdist, m.xadj, m.adjncy, m.vwgt, m.adjwgt, &flag, &numflag, &nCon, &nParts, tpwgts, &ubvec, options, &noEdgeCut, partition, &comm);
 
     if (ret != METIS_OK) {
@@ -117,8 +117,13 @@ void idxToCSR(const idx_t *row_idx, const idx_t *col_idx, bool symmetric, Sparse
             }
         }
         printf("Number of weights: %d, totalAdj: %d\n", numberOfWeights, realNEdges);
-    } else
+    } else {
+        // just do the sorting
+        for (idx_t i = 0; i < m.rows; ++i) {
+            sort(adjncy + xadj[i], adjncy + xadj[i + 1]);
+        }
         m.nnz = 2 * realNEdges;
+    }
     m.xadj = xadj;
     m.adjncy = adjncy;
     m.adjwgt = adjwgt;
@@ -158,7 +163,6 @@ SparseMat readFile(const std::string &filename) {
                 ulong nnz;
                 idx_t *row_idx, *col_idx;
                 bool symmetric = readMMF(filename, n, m, nnz, row_idx, col_idx);
-//                cout << "n: " << n << ", m: " << m << ", nnz: " << nnz << endl;
                 gmat.nnz = nnz;
                 gmat.rows = n;
                 gmat.total_rows = n;
