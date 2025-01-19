@@ -1,0 +1,10 @@
+build
+cmake-build-release
+cmake-build-debug
+out
+.idea
+.vscode
+*.cmake
+*.txt
+*.out
+*.mtx

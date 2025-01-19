@@ -18,7 +18,7 @@
 using namespace std;
 idx_t* partitionWithMetis(SparseMat&m, idx_t nParts) {
     idx_t nCon = 1;  // Number of balancing constraints
-    idx_t noEdgeCut;
+    idx_t noEdgeCut = 0;
     idx_t *partition = new idx_t[m.rows];
     idx_t flag = 2;
     if (m.adjwgt != NULL) {
