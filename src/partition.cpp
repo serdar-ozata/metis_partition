@@ -153,8 +153,8 @@ SparseMat readFile(const std::string &filename) {
             mat.vwgt = NULL;
             mat.xadj = NULL;
             mat.adjncy = NULL;
-            idx_t send_counts[size];
-            idx_t displs[size];
+            int send_counts[size];
+            int displs[size];
             memset(send_counts, 0, sizeof(idx_t) * size);
             memset(displs, 0, sizeof(idx_t) * size);
             SparseMat gmat;
@@ -202,33 +202,88 @@ SparseMat readFile(const std::string &filename) {
             }
             mat.xadj = new idx_t[mat.rows + 1];
             MPI_Scatterv(gmat.xadj, send_counts, displs, MPI_IDX_T, mat.xadj, mat.rows + 1, MPI_IDX_T, 0, MPI_COMM_WORLD);
-            int first_xadj = mat.xadj[0];
+            idx_t first_xadj = mat.xadj[0];
             for (int i = 0; i <= mat.rows; ++i) {
                 mat.xadj[i] -= first_xadj;
             }
             // edge weights and adjacency
-            if (rank == 0) {
-                for(int i = 0; i < size; ++i) {
-                    send_counts[i] = gmat.xadj[displs[i] + send_counts[i] - 1] - gmat.xadj[displs[i]];
-                }
-                displs[0] = 0;
-                for (int i = 1; i < size; ++i) {
-                    displs[i] = displs[i - 1] + send_counts[i - 1];
-                }
-            }
-            MPI_Scatter(send_counts, 1, MPI_IDX_T, &mat.nnz, 1, MPI_IDX_T, 0, MPI_COMM_WORLD);
+//            if (rank == 0) {
+//                for(int i = 0; i < size; ++i) {
+//                    send_counts[i] = gmat.xadj[displs[i] + send_counts[i] - 1] - gmat.xadj[displs[i]];
+//                }
+//                displs[0] = 0;
+//                for (int i = 1; i < size; ++i) {
+//                    displs[i] = displs[i - 1] + send_counts[i - 1];
+//                }
+//            }
+//            MPI_Scatter(send_counts, 1, MPI_IDX_T, &mat.nnz, 1, MPI_IDX_T, 0, MPI_COMM_WORLD);
+//            mat.adjncy = new idx_t[mat.nnz];
+//            mat.adjwgt = new idx_t[mat.nnz];
+//            MPI_Scatterv(gmat.adjncy, send_counts, displs, MPI_IDX_T, mat.adjncy, mat.nnz, MPI_IDX_T, 0, MPI_COMM_WORLD);
+//
+//            bool has_adjwgt = gmat.adjwgt != NULL;
+//            MPI_Bcast(&has_adjwgt, 1, MPI_C_BOOL, 0, MPI_COMM_WORLD);
+//            if (has_adjwgt) {
+//                MPI_Scatterv(gmat.adjwgt, send_counts, displs, MPI_IDX_T, mat.adjwgt, mat.nnz, MPI_IDX_T, 0, MPI_COMM_WORLD);
+//            } else {
+//                delete[] mat.adjwgt;
+//                mat.adjwgt = NULL;
+//            }
+            mat.nnz = mat.xadj[mat.rows];
             mat.adjncy = new idx_t[mat.nnz];
-            mat.adjwgt = new idx_t[mat.nnz];
-            MPI_Scatterv(gmat.adjncy, send_counts, displs, MPI_IDX_T, mat.adjncy, mat.nnz, MPI_IDX_T, 0, MPI_COMM_WORLD);
-
             bool has_adjwgt = gmat.adjwgt != NULL;
             MPI_Bcast(&has_adjwgt, 1, MPI_C_BOOL, 0, MPI_COMM_WORLD);
             if (has_adjwgt) {
-                MPI_Scatterv(gmat.adjwgt, send_counts, displs, MPI_IDX_T, mat.adjwgt, mat.nnz, MPI_IDX_T, 0, MPI_COMM_WORLD);
+                mat.adjwgt = new idx_t[mat.nnz];
             } else {
-                delete[] mat.adjwgt;
                 mat.adjwgt = NULL;
             }
+            MPI_Request* request = nullptr;
+            #if idx_t == int_32_t
+                if (rank == 0) {
+                    MPI_Request* send_requests = new MPI_Request[size - 1];
+                    for (int i = 1; i < size; ++i) {
+                        idx_t* start = gmat.adjncy + gmat.xadj[displs[i]];
+                        idx_t* end = gmat.adjncy + gmat.xadj[displs[i] + send_counts[i]];
+                        int count = end - start;
+                        MPI_Isend(start, count, MPI_IDX_T, i, 0, MPI_COMM_WORLD, send_requests + i - 1);
+                    }
+                    MPI_Waitall(size, send_requests, MPI_STATUSES_IGNORE);
+                    copy(gmat.adjncy, gmat.adjncy + mat.nnz, mat.adjncy);
+                } else
+                    MPI_Recv(mat.adjncy, mat.nnz, MPI_IDX_T, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            #elif
+            // mat.nnz might be larger than int32 max
+            int block_count = mat.nnz / INT32_MAX;
+            int remaining = mat.nnz % INT32_MAX;
+
+            MPI_Irecv(mat.adjncy + block_count * INT32_MAX, remaining, MPI_IDX_T, 0, 0, MPI_COMM_WORLD, request + block_count);
+            if (rank == 0) {
+                for (int i = 1; i < size; ++i) {
+                    idx_t* start = gmat.adjncy + gmat.xadj[displs[i]];
+                    idx_t* end = gmat.adjncy + gmat.xadj[displs[i] + send_counts[i]];
+                    unsigned long count = end - start;
+                    int block_count = count / INT32_MAX;
+                    int remaining = count % INT32_MAX;
+                    request = new MPI_Request[block_count + 1];
+                    for (int j = 0; j < block_count; ++j) {
+                        MPI_Isend(start + j * INT32_MAX, INT32_MAX, MPI_IDX_T, i, 0, MPI_COMM_WORLD, request + j);
+                    }
+                    MPI_Isend(start + block_count * INT32_MAX, remaining, MPI_IDX_T, i, 0, MPI_COMM_WORLD, request + block_count);
+                    MPI_Waitall(block_count + 1, request, MPI_STATUSES_IGNORE);
+                    delete[] request;
+                }
+                copy(gmat.adjncy, gmat.adjncy + mat.nnz, mat.adjncy);
+            } else {
+                request = new MPI_Request[block_count + 1];
+                for (int i = 0; i < block_count; ++i) {
+                    MPI_Irecv(mat.adjncy + i * INT32_MAX, INT32_MAX, MPI_IDX_T, 0, 0, MPI_COMM_WORLD, request + i);
+                }
+                MPI_Waitall(block_count + 1, request, MPI_STATUSES_IGNORE);
+                delete[] request;
+            }
+
+            #endif
             if (rank == 0) {
                 deleteSparseMat(gmat);
             }
