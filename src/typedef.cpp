@@ -10,6 +10,7 @@ void deleteSparseMat(SparseMat &m) {
     if (m.adjwgt != NULL)
         delete[] m.adjwgt;
     delete[] m.vwgt;
+    delete[] m.vtxdist;
 }
 
 void printMat(SparseMat &m, bool serial) {

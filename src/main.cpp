@@ -30,7 +30,6 @@ int main(int argc, char **argv) {
     writeInpart(input_file, output_path, partition, n_parts, mat);
 
     // free memory
-    deleteSparseMat(mat);
     delete[] partition;
     MPI_Finalize();
 

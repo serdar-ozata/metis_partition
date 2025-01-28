@@ -96,19 +96,22 @@ void writeInpart(const string input_file, const string output_path, const idx_t 
     // gather partitions
     int* all_partitions = nullptr;
     MPI_Request* requests = nullptr;
+    int total_rows = mat.total_rows;
+    int rows = mat.rows;
+    deleteSparseMat(mat);
     if (rank == 0) {
-        all_partitions = new int[mat.total_rows];
+        all_partitions = new int[total_rows];
         requests = new MPI_Request[size - 1];
-        int block_size = mat.total_rows / size;
+        int block_size = total_rows / size;
         for (int i = 1; i < size; i++) {
             int displacement = i * block_size;
-            int count = i == size - 1 ? mat.total_rows - displacement : block_size;
+            int count = i == size - 1 ? total_rows - displacement : block_size;
             MPI_Irecv(all_partitions + displacement, count, MPI_INT, i, 0, MPI_COMM_WORLD, requests + i - 1);
         }
-        copy(partition, partition + mat.rows, all_partitions);
+        copy(partition, partition + rows, all_partitions);
         MPI_Waitall(size - 1, requests, MPI_STATUSES_IGNORE);
     } else {
-        MPI_Send(partition, mat.rows, MPI_INT, 0, 0, MPI_COMM_WORLD);
+        MPI_Send(partition, rows, MPI_INT, 0, 0, MPI_COMM_WORLD);
         return;
     }
     string input_name = input_file.substr(input_file.find_last_of('/') + 1);
@@ -123,7 +126,7 @@ void writeInpart(const string input_file, const string output_path, const idx_t 
         perror("Error opening file");
         throw runtime_error("Error opening file");
     }
-    fwrite(all_partitions, sizeof(idx_t), mat.total_rows, file);
+    fwrite(all_partitions, sizeof(idx_t), total_rows, file);
     fclose(file);
     delete[] all_partitions;
     delete[] requests;
