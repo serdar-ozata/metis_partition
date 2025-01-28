@@ -13,7 +13,7 @@ typedef struct {
 
 
 typedef struct {
-    idx_t rows, total_rows;
+    int rows, total_rows;
     idx_t nnz;
     idx_t* xadj;
     idx_t* adjncy;

@@ -70,6 +70,15 @@ target_link_libraries(metis_partition PRIVATE
         "${PARMETIS_LIB}"
         "${METIS_LIB}"
         "${GKLIB_LIB}"
+
+)
+
+add_executable(convert src/convert.cpp src/io.cpp src/io.h src/quicksort.h src/quicksort.cpp src/typedef.h src/typedef.cpp)
+target_link_libraries(convert PRIVATE
+        ${MPI_C_LIBRARIES}
+        "${PARMETIS_LIB}"
+        "${METIS_LIB}"
+        "${GKLIB_LIB}"
 )
 
 target_include_directories(metis_partition PRIVATE ${MPI_C_INCLUDE_PATH})

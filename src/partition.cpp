@@ -7,6 +7,7 @@
 #include <cstring>
 #include <algorithm>
 #include <mpi.h>
+#include <csignal>
 #include "io.h"
 #include "quicksort.h"
 
@@ -137,167 +138,61 @@ SparseMat readFile(const std::string &filename) {
     int size, rank;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    enum FILE_TYPE file_type;
-    if (filename.ends_with(".mmf") || filename.ends_with(".mtx")) {
-        file_type = MMF;
-    } else if (filename.ends_with(".rb")) {
-        file_type = RB;
-    } else {
-        cerr << "Error: Unknown file type" << endl;
-        throw runtime_error("Unknown file type");
+    SparseMat m;
+    FILE *file = fopen(filename.c_str(), "rb");
+    if (file == NULL) {
+        perror("Error opening file");
+        throw runtime_error("Error opening file");
     }
-    switch (file_type) {
-        case MMF: {
-            SparseMat mat;
-            mat.adjwgt = NULL;
-            mat.vwgt = NULL;
-            mat.xadj = NULL;
-            mat.adjncy = NULL;
-            int send_counts[size];
-            int displs[size];
-            memset(send_counts, 0, sizeof(idx_t) * size);
-            memset(displs, 0, sizeof(idx_t) * size);
-            SparseMat gmat;
-            if (rank == 0) {
-                int n, m;
-                ulong nnz;
-                idx_t *row_idx, *col_idx;
-                bool symmetric = readMMF(filename, n, m, nnz, row_idx, col_idx);
-                gmat.nnz = nnz;
-                gmat.rows = n;
-                gmat.total_rows = n;
-                idxToCSR(row_idx, col_idx, symmetric, gmat);
-                idx_t dist_vtx_size = gmat.rows / size;
-                for (int i = 0; i < size; ++i) {
-                    if (i == size - 1) {
-                        send_counts[i] = gmat.rows - i * dist_vtx_size;
-                    } else {
-                        send_counts[i] = dist_vtx_size;
-                    }
-                    displs[i] = i * dist_vtx_size;
-                }
-                mat.total_rows = gmat.total_rows;
-//                printMat(gmat, true);
-            }
-            // vertex weights and pointers
-            MPI_Scatter(send_counts, 1, MPI_IDX_T, &mat.rows, 1, MPI_IDX_T, 0, MPI_COMM_WORLD);
-            MPI_Bcast(&mat.total_rows, 1, MPI_IDX_T, 0, MPI_COMM_WORLD);
-            mat.vwgt = new idx_t[mat.rows];
-            MPI_Scatterv(gmat.vwgt, send_counts, displs, MPI_IDX_T, mat.vwgt, mat.rows, MPI_IDX_T, 0, MPI_COMM_WORLD);
-            // vtxdist
-            mat.vtxdist = new idx_t[size + 1];
-            mat.vtxdist[0] = 0;
-            if (rank == 0) {
-                for (int i = 1; i <= size; ++i) {
-                    mat.vtxdist[i] = send_counts[i - 1] + mat.vtxdist[i - 1];
-                }
-            }
-            MPI_Bcast(mat.vtxdist + 1, size, MPI_IDX_T, 0, MPI_COMM_WORLD);
+    fread(&m.total_rows, sizeof(int), 1, file);
+    fread(&m.rows, sizeof(int), 1, file); // this value is not important
+    idx_t total_nnz;
+    fread(&total_nnz, sizeof(idx_t), 1, file);
+    bool has_weights = false;
+    fread(&has_weights, sizeof(bool), 1, file);
+    idx_t adj_start = (m.total_rows + 2) * sizeof(idx_t) + 2 * sizeof(int) + sizeof(bool);
+    idx_t adjwgt_start = adj_start + total_nnz * sizeof(idx_t);
 
-            // xadj
-            if (rank == 0) {
-                for (int i = 0; i < size; ++i) {
-                    send_counts[i]++;
-                }
-            }
-            mat.xadj = new idx_t[mat.rows + 1];
-            MPI_Scatterv(gmat.xadj, send_counts, displs, MPI_IDX_T, mat.xadj, mat.rows + 1, MPI_IDX_T, 0, MPI_COMM_WORLD);
-            idx_t first_xadj = mat.xadj[0];
-            for (int i = 0; i <= mat.rows; ++i) {
-                mat.xadj[i] -= first_xadj;
-            }
-            // edge weights and adjacency
-//            if (rank == 0) {
-//                for(int i = 0; i < size; ++i) {
-//                    send_counts[i] = gmat.xadj[displs[i] + send_counts[i] - 1] - gmat.xadj[displs[i]];
-//                }
-//                displs[0] = 0;
-//                for (int i = 1; i < size; ++i) {
-//                    displs[i] = displs[i - 1] + send_counts[i - 1];
-//                }
-//            }
-//            MPI_Scatter(send_counts, 1, MPI_IDX_T, &mat.nnz, 1, MPI_IDX_T, 0, MPI_COMM_WORLD);
-//            mat.adjncy = new idx_t[mat.nnz];
-//            mat.adjwgt = new idx_t[mat.nnz];
-//            MPI_Scatterv(gmat.adjncy, send_counts, displs, MPI_IDX_T, mat.adjncy, mat.nnz, MPI_IDX_T, 0, MPI_COMM_WORLD);
-//
-//            bool has_adjwgt = gmat.adjwgt != NULL;
-//            MPI_Bcast(&has_adjwgt, 1, MPI_C_BOOL, 0, MPI_COMM_WORLD);
-//            if (has_adjwgt) {
-//                MPI_Scatterv(gmat.adjwgt, send_counts, displs, MPI_IDX_T, mat.adjwgt, mat.nnz, MPI_IDX_T, 0, MPI_COMM_WORLD);
-//            } else {
-//                delete[] mat.adjwgt;
-//                mat.adjwgt = NULL;
-//            }
-            mat.nnz = mat.xadj[mat.rows];
-            mat.adjncy = new idx_t[mat.nnz];
-            bool has_adjwgt = gmat.adjwgt != NULL;
-            MPI_Bcast(&has_adjwgt, 1, MPI_C_BOOL, 0, MPI_COMM_WORLD);
-            if (has_adjwgt) {
-                mat.adjwgt = new idx_t[mat.nnz];
-            } else {
-                mat.adjwgt = NULL;
-            }
-            MPI_Request* request = nullptr;
-            #if idx_t == int_32_t
-                if (rank == 0) {
-                    MPI_Request* send_requests = new MPI_Request[size - 1];
-                    for (int i = 1; i < size; ++i) {
-                        idx_t* start = gmat.adjncy + gmat.xadj[displs[i]];
-                        idx_t* end = gmat.adjncy + gmat.xadj[displs[i] + send_counts[i]];
-                        int count = end - start;
-                        MPI_Isend(start, count, MPI_IDX_T, i, 0, MPI_COMM_WORLD, send_requests + i - 1);
-                    }
-                    MPI_Waitall(size, send_requests, MPI_STATUSES_IGNORE);
-                    copy(gmat.adjncy, gmat.adjncy + mat.nnz, mat.adjncy);
-                } else
-                    MPI_Recv(mat.adjncy, mat.nnz, MPI_IDX_T, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            #elif
-            // mat.nnz might be larger than int32 max
-            int block_count = mat.nnz / INT32_MAX;
-            int remaining = mat.nnz % INT32_MAX;
+    int block_size = m.total_rows / size;
+    long displacement = rank * block_size;
+    int count = rank == size - 1 ? m.total_rows - displacement : block_size;
 
-            MPI_Irecv(mat.adjncy + block_count * INT32_MAX, remaining, MPI_IDX_T, 0, 0, MPI_COMM_WORLD, request + block_count);
-            if (rank == 0) {
-                for (int i = 1; i < size; ++i) {
-                    idx_t* start = gmat.adjncy + gmat.xadj[displs[i]];
-                    idx_t* end = gmat.adjncy + gmat.xadj[displs[i] + send_counts[i]];
-                    unsigned long count = end - start;
-                    int block_count = count / INT32_MAX;
-                    int remaining = count % INT32_MAX;
-                    request = new MPI_Request[block_count + 1];
-                    for (int j = 0; j < block_count; ++j) {
-                        MPI_Isend(start + j * INT32_MAX, INT32_MAX, MPI_IDX_T, i, 0, MPI_COMM_WORLD, request + j);
-                    }
-                    MPI_Isend(start + block_count * INT32_MAX, remaining, MPI_IDX_T, i, 0, MPI_COMM_WORLD, request + block_count);
-                    MPI_Waitall(block_count + 1, request, MPI_STATUSES_IGNORE);
-                    delete[] request;
-                }
-                copy(gmat.adjncy, gmat.adjncy + mat.nnz, mat.adjncy);
-            } else {
-                request = new MPI_Request[block_count + 1];
-                for (int i = 0; i < block_count; ++i) {
-                    MPI_Irecv(mat.adjncy + i * INT32_MAX, INT32_MAX, MPI_IDX_T, 0, 0, MPI_COMM_WORLD, request + i);
-                }
-                MPI_Waitall(block_count + 1, request, MPI_STATUSES_IGNORE);
-                delete[] request;
-            }
-
-            #endif
-            if (rank == 0) {
-                deleteSparseMat(gmat);
-            }
-            // error check
-            if (mat.nnz != mat.xadj[mat.rows]) {
-                cerr << "Error: nnz != xadj[rows]" << endl;
-                throw runtime_error("Error: nnz != xadj[rows]");
-            }
-            return mat;
-        }
-        case RB: {
-            throw runtime_error("RB file format is not supported yet");
-        }
-        default:
-            throw runtime_error("Unknown file type");
+    m.vtxdist = new idx_t[size + 1];
+    for (int i = 0; i < size; ++i) {
+        m.vtxdist[i] = i * block_size;
     }
+    m.vtxdist[size] = m.total_rows;
+
+    fseek(file, displacement * sizeof(idx_t), SEEK_CUR);
+    m.xadj = new idx_t[count + 1];
+    for (int i = 0; i <= count; ++i) {
+        fread(m.xadj + i, sizeof(idx_t), 1, file);
+    }
+    fseek(file, adj_start + m.xadj[0] * sizeof(idx_t), SEEK_SET);
+    m.nnz = m.xadj[count] - m.xadj[0];
+    m.adjncy = new idx_t[m.nnz];
+    for (int i = 0; i < m.nnz; ++i) {
+        fread(m.adjncy + i, sizeof(idx_t), 1, file);
+    }
+    if (has_weights) {
+        fseek(file, adjwgt_start + m.xadj[0] * sizeof(idx_t), SEEK_SET);
+        m.adjwgt = new idx_t[m.nnz];
+        for (int i = 0; i < m.nnz; ++i) {
+            fread(m.adjwgt + i, sizeof(idx_t), 1, file);
+        }
+    } else
+        m.adjwgt = NULL;
+    fclose(file);
+    m.rows = count;
+//    sleep(5);
+    m.vwgt = new idx_t[count];
+    idx_t first = m.xadj[0];
+    for (int i = 0; i <= count; ++i) {
+        m.xadj[i] -= first;
+    }
+    m.xadj[count] = m.nnz;
+    for (int i = 0; i < count; ++i) {
+        m.vwgt[i] = m.xadj[i + 1] - m.xadj[i];
+    }
+    return m;
 }

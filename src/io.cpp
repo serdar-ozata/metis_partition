@@ -8,7 +8,7 @@
 #include <sstream>
 #include <vector>
 #include <string>
-bool readMMF(const string &path, int &n, int &m, ulong &nnz, idx_t *&row_idx, idx_t *&col_idx) {
+bool readMMF(const string &path, int &n, int &m, idx_t &nnz, idx_t *&row_idx, idx_t *&col_idx) {
     ifstream file(path);
     if (!file) {
         cout << "Error: Unable to open file" << endl;
@@ -127,4 +127,24 @@ void writeInpart(const string input_file, const string output_path, const idx_t 
     fclose(file);
     delete[] all_partitions;
     delete[] requests;
+}
+
+bool writeBinary(const string &path, int n, int m, idx_t nnz, idx_t* xadj, idx_t* adjncy, idx_t* adjwgt) {
+    FILE* file = fopen(path.c_str(), "wb");
+    if (file == NULL) {
+        perror("Error opening file");
+        return false;
+    }
+    fwrite(&n, sizeof(int), 1, file);
+    fwrite(&m, sizeof(int), 1, file);
+    fwrite(&nnz, sizeof(idx_t), 1, file);
+    bool has_weights = adjwgt != NULL;
+    fwrite(&has_weights, sizeof(bool), 1, file);
+    fwrite(xadj, sizeof(idx_t), m + 1, file);
+    fwrite(adjncy, sizeof(idx_t), nnz, file);
+    if (adjwgt != NULL) {
+        fwrite(adjwgt, sizeof(idx_t), nnz, file);
+    }
+    fclose(file);
+    return true;
 }
