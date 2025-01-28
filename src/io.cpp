@@ -112,7 +112,7 @@ void writeInpart(const string input_file, const string output_path, const idx_t 
         return;
     }
     string input_name = input_file.substr(input_file.find_last_of('/') + 1);
-    input_name = input_name.substr(0, input_name.find_last_of('.'));
+    input_name = input_name.substr(0, input_name.find_first_of('.'));
     string output_file = output_path;
     if (output_path.back() != '/') {
         output_file += '/';
