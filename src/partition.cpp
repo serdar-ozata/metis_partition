@@ -171,13 +171,13 @@ SparseMat readFile(const std::string &filename) {
     fseek(file, adj_start + m.xadj[0] * sizeof(idx_t), SEEK_SET);
     m.nnz = m.xadj[count] - m.xadj[0];
     m.adjncy = new idx_t[m.nnz];
-    for (int i = 0; i < m.nnz; ++i) {
+    for (idx_t i = 0; i < m.nnz; ++i) {
         fread(m.adjncy + i, sizeof(idx_t), 1, file);
     }
     if (has_weights) {
         fseek(file, adjwgt_start + m.xadj[0] * sizeof(idx_t), SEEK_SET);
         m.adjwgt = new idx_t[m.nnz];
-        for (int i = 0; i < m.nnz; ++i) {
+        for (idx_t i = 0; i < m.nnz; ++i) {
             fread(m.adjwgt + i, sizeof(idx_t), 1, file);
         }
     } else

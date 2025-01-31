@@ -28,7 +28,7 @@ bool readMMF(const string &path, int &n, int &m, idx_t &nnz, idx_t *&row_idx, id
     iss >> n >> m >> nnz;
     row_idx = new idx_t[nnz];
     col_idx = new idx_t[nnz];
-    for (long i = 0; i < nnz; i++) {
+    for (idx_t i = 0; i < nnz; i++) {
         getline(file, line);
         istringstream iss(line);
         iss >> row_idx[i] >> col_idx[i];

@@ -20,7 +20,7 @@ int main(int argc, char** argv) {
     idx_t *counts = new idx_t[m];
     memset(counts, 0, sizeof(idx_t) * m);
     idx_t *xadj = new idx_t[m + 1];
-    ulong realNEdges = nnz;
+    idx_t realNEdges = nnz;
     idx_t *adjncy = new idx_t[realNEdges * 2];
     for (idx_t i = 0; i < realNEdges; ++i) {
         idx_t send_vtx = col_idx[i], recv_vtx = row_idx[i];
@@ -85,13 +85,6 @@ int main(int argc, char** argv) {
         xadj[m] = cur_pos;
         realNEdges = cur_pos;
         nnz = realNEdges;
-        int numberOfWeights = 0;
-        for (int i = 0; i < realNEdges; ++i) {
-            if (adjwgt[i] > 0) {
-                numberOfWeights++;
-            }
-        }
-        printf("Number of weights: %d, totalAdj: %d\n", numberOfWeights, realNEdges);
     } else {
         // just do the sorting
         for (idx_t i = 0; i < m; ++i) {
@@ -101,6 +94,22 @@ int main(int argc, char** argv) {
     }
     delete[] row_idx;
     delete[] col_idx;
+    printf("Writing binary file\n");
+    // debug
+//    for (idx_t i = 0; i < m; ++i) {
+//        for (idx_t j = xadj[i]; j < xadj[i + 1]; ++j) {
+//            idx_t  other = adjncy[j];
+//            if (i < other) {
+//                idx_t ret = binary_search(adjncy + xadj[other], adjncy + xadj[other + 1], i);
+//                if (ret == -1) {
+//                    cout << "Error: Missing edge" << endl;
+//                }
+//            } else if (i == other) {
+//                cout << "Error: Self loop" << endl;
+//            } else break;
+//        }
+//    }
+    // debug end
     string out_filename = argv[2];
     if (out_filename.back() != '/') {
         out_filename += '/';
