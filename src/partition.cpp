@@ -150,19 +150,22 @@ SparseMat readFile(const std::string &filename) {
     fread(&total_nnz, sizeof(idx_t), 1, file);
     bool has_weights = false;
     fread(&has_weights, sizeof(bool), 1, file);
-    idx_t adj_start = (m.total_rows + 2) * sizeof(idx_t) + 2 * sizeof(int) + sizeof(bool);
-    idx_t adjwgt_start = adj_start + total_nnz * sizeof(idx_t);
+    long adj_start = (static_cast<long>(m.total_rows) + 2) * sizeof(idx_t) + 2 * sizeof(int) + sizeof(bool);
+    long adjwgt_start = adj_start + static_cast<long>(total_nnz) * sizeof(idx_t);
 
-    int block_size = m.total_rows / size;
+    idx_t block_size = m.total_rows / size;
     long displacement = rank * block_size;
-    int count = rank == size - 1 ? m.total_rows - displacement : block_size;
+    idx_t count = rank == size - 1 ? m.total_rows - displacement : block_size;
 
     m.vtxdist = new idx_t[size + 1];
     for (int i = 0; i < size; ++i) {
         m.vtxdist[i] = i * block_size;
     }
     m.vtxdist[size] = m.total_rows;
-
+    long currentPos = ftell(file);
+    if (rank == 0) {
+        printf("Current position: %ld\n", currentPos);
+    }
     fseek(file, displacement * sizeof(idx_t), SEEK_CUR);
     m.xadj = new idx_t[count + 1];
     for (int i = 0; i <= count; ++i) {
@@ -185,13 +188,13 @@ SparseMat readFile(const std::string &filename) {
     fclose(file);
     m.rows = count;
 //    sleep(5);
-    m.vwgt = new idx_t[count];
+    m.vwgt = new idx_t[m.rows];
     idx_t first = m.xadj[0];
-    for (int i = 0; i <= count; ++i) {
+    for (int i = 0; i <= m.rows; ++i) {
         m.xadj[i] -= first;
     }
-    m.xadj[count] = m.nnz;
-    for (int i = 0; i < count; ++i) {
+    m.xadj[m.rows] = m.nnz;
+    for (int i = 0; i < m.rows; ++i) {
         m.vwgt[i] = m.xadj[i + 1] - m.xadj[i];
     }
     return m;
