@@ -96,19 +96,22 @@ int main(int argc, char** argv) {
     delete[] col_idx;
     printf("Writing binary file\n");
     // debug
-//    for (idx_t i = 0; i < m; ++i) {
-//        for (idx_t j = xadj[i]; j < xadj[i + 1]; ++j) {
-//            idx_t  other = adjncy[j];
-//            if (i < other) {
-//                idx_t ret = binary_search(adjncy + xadj[other], adjncy + xadj[other + 1], i);
-//                if (ret == -1) {
-//                    cout << "Error: Missing edge" << endl;
-//                }
-//            } else if (i == other) {
-//                cout << "Error: Self loop" << endl;
-//            } else break;
-//        }
-//    }
+    for (idx_t i = 0; i < m; ++i) {
+        for (idx_t j = xadj[i]; j < xadj[i + 1]; ++j) {
+            idx_t  other = adjncy[j];
+            if (other < 0) {
+                cout << "Error: Overflown index" << endl;
+            }
+            if (i < other) {
+                idx_t ret = binary_search(adjncy + xadj[other], adjncy + xadj[other + 1], i);
+                if (ret == -1) {
+                    cout << "Error: Missing edge" << endl;
+                }
+            } else if (i == other) {
+                cout << "Error: Self loop" << endl;
+            } else break;
+        }
+    }
     // debug end
     string out_filename = argv[2];
     if (out_filename.back() != '/') {
