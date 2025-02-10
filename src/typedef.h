@@ -4,8 +4,9 @@
 
 #ifndef METIS_PARTITION_TYPEDEF_H
 #define METIS_PARTITION_TYPEDEF_H
-#include <parmetis.h>
 #include <cstdlib>
+#include <parhip_interface.h>
+
 typedef struct {
     double weight;
     int out;
@@ -14,12 +15,12 @@ typedef struct {
 
 typedef struct {
     int rows, total_rows;
-    idx_t nnz;
-    idx_t* xadj;
-    idx_t* adjncy;
-    idx_t* adjwgt;
-    idx_t* vwgt;
-    idx_t* vtxdist;
+    idxtype nnz;
+    idxtype* xadj;
+    idxtype* adjncy;
+    idxtype* adjwgt;
+    idxtype* vwgt;
+    idxtype* vtxdist;
 } SparseMat;
 
 void deleteSparseMat(SparseMat &m);

@@ -1,10 +1,9 @@
 #include <iostream>
 #include "io.h"
 #include "partition.h"
-#include "quicksort.h"
 #include <mpi.h>
-#include <cstring>
-#include <unistd.h>
+#include <algorithm>
+#include "parhip_interface.h"
 using namespace std;
 int main(int argc, char **argv) {
     if (argc != 4) {
@@ -25,8 +24,7 @@ int main(int argc, char **argv) {
         }
         MPI_Barrier(MPI_COMM_WORLD);
     }
-    // end debug
-    idx_t *partition = partitionWithMetis(mat, n_parts);
+    int *partition = partitionWithMetis(mat, n_parts);
     writeInpart(input_file, output_path, partition, n_parts, mat);
 
     // free memory

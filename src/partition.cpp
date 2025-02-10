@@ -11,61 +11,49 @@
 #include "io.h"
 #include "quicksort.h"
 
-#if idx_t == int_32_t
-#define MPI_IDX_T MPI_INT
-#else
-#define MPI_IDX_T MPI_LONG
-#endif
 using namespace std;
-idx_t* partitionWithMetis(SparseMat&m, idx_t nParts) {
-    idx_t nCon = 1;  // Number of balancing constraints
-    idx_t noEdgeCut = 0;
-    idx_t *partition = new idx_t[m.rows];
-    idx_t numflag = 0;
-    idx_t flag = 2;
+int * partitionWithMetis(SparseMat&m, int  nParts) {
+    int  noEdgeCut = 0;
+    idxtype  *partition = new idxtype [m.rows];
+    idxtype  flag = 2;
     if (m.adjwgt != NULL) {
         flag |= 1;
     }
     MPI_Comm comm = MPI_COMM_WORLD;
-    real_t* tpwgts = new real_t[nParts * nCon];
-    for (int i = 0; i < nParts; ++i) {
-        tpwgts[i] = 1.0 / nParts;
+    double imbalance = 1.05;
+    ParHIPPartitionKWay(m.vtxdist, m.xadj, m.adjncy, m.vwgt, m.adjwgt, &nParts, &imbalance, true, 0, FASTSOCIAL, &noEdgeCut, partition, &comm);
+    // convert to int*
+    int* int_partition = new int[m.rows];
+    for (int i = 0; i < m.rows; ++i) {
+        int_partition[i] = partition[i];
     }
-    real_t ubvec = {1.05};
-    idx_t options[3] = {0, 0, 0};
-    int ret = ParMETIS_V3_PartKway(m.vtxdist, m.xadj, m.adjncy, m.vwgt, m.adjwgt, &flag, &numflag, &nCon, &nParts, tpwgts, &ubvec, options, &noEdgeCut, partition, &comm);
-
-    if (ret != METIS_OK) {
-        cout << "METIS failed with error code " << ret << endl;
-        exit(1);
-    }
-    delete[] tpwgts;
-    return partition;
+    delete[] partition;
+    return int_partition;
 }
 
-void idxToCSR(const idx_t *row_idx, const idx_t *col_idx, bool symmetric, SparseMat &m) {
-    idx_t *counts = new idx_t[m.rows];
-    memset(counts, 0, sizeof(idx_t) * m.rows);
-    idx_t *xadj = new idx_t[m.rows + 1];
+void idxToCSR(const idxtype  *row_idx, const idxtype  *col_idx, bool symmetric, SparseMat &m) {
+    idxtype  *counts = new idxtype [m.rows];
+    memset(counts, 0, sizeof(idxtype ) * m.rows);
+    idxtype  *xadj = new idxtype [m.rows + 1];
     ulong realNEdges = m.nnz;
-    idx_t *adjncy = new idx_t[realNEdges * 2];
-    for (idx_t i = 0; i < realNEdges; ++i) {
-        idx_t send_vtx = col_idx[i], recv_vtx = row_idx[i];
+    idxtype  *adjncy = new idxtype [realNEdges * 2];
+    for (idxtype  i = 0; i < realNEdges; ++i) {
+        idxtype  send_vtx = col_idx[i], recv_vtx = row_idx[i];
         counts[send_vtx]++;
         counts[recv_vtx]++;
     }
     xadj[0] = 0;
-    for (idx_t i = 0; i < m.rows; ++i) {
+    for (idxtype  i = 0; i < m.rows; ++i) {
         xadj[i + 1] = xadj[i] + counts[i];
     }
-    memset(counts, 0, sizeof(idx_t) * m.rows);
-    idx_t *adjwgt = NULL;
+    memset(counts, 0, sizeof(idxtype ) * m.rows);
+    idxtype  *adjwgt = NULL;
     if (not symmetric) {
-        adjwgt = new idx_t[realNEdges * 2];
-        memset(adjwgt, 0, sizeof(idx_t) * realNEdges * 2);
+        adjwgt = new idxtype [realNEdges * 2];
+        memset(adjwgt, 0, sizeof(idxtype ) * realNEdges * 2);
     }
-    for (idx_t i = 0; i < realNEdges; ++i) {
-        idx_t send_vtx = col_idx[i], recv_vtx = row_idx[i];
+    for (idxtype  i = 0; i < realNEdges; ++i) {
+        idxtype  send_vtx = col_idx[i], recv_vtx = row_idx[i];
         adjncy[xadj[send_vtx] + counts[send_vtx]] = recv_vtx;
         adjncy[xadj[recv_vtx] + counts[recv_vtx]] = send_vtx;
         if (not symmetric) {
@@ -76,12 +64,12 @@ void idxToCSR(const idx_t *row_idx, const idx_t *col_idx, bool symmetric, Sparse
     }
     if (not symmetric) {
         // remove duplicates
-        for (idx_t i = 0; i < m.rows; ++i) {
+        for (idxtype  i = 0; i < m.rows; ++i) {
             quicksort(adjncy, adjwgt, xadj[i], xadj[i + 1] - 1);
-            idx_t j;
+            idxtype  j;
             for (j = xadj[i]; j < xadj[i] + counts[i] - 1; ++j) {
-                idx_t recv_vtx = adjncy[j];
-                idx_t next_recv_vtx = adjncy[j + 1];
+                idxtype  recv_vtx = adjncy[j];
+                idxtype  next_recv_vtx = adjncy[j + 1];
                 if (recv_vtx == next_recv_vtx) {
                     counts[i]--;
                     if (adjwgt[j] && adjwgt[j + 1]) {
@@ -99,10 +87,10 @@ void idxToCSR(const idx_t *row_idx, const idx_t *col_idx, bool symmetric, Sparse
             }
         }
         // now move the unique elements to the beginning
-        idx_t cur_pos = 0;
-        for (idx_t i = 0; i < m.rows; ++i) {
-            idx_t start = xadj[i];
-            idx_t end = xadj[i] + counts[i];
+        idxtype  cur_pos = 0;
+        for (idxtype  i = 0; i < m.rows; ++i) {
+            idxtype  start = xadj[i];
+            idxtype  end = xadj[i] + counts[i];
             std::copy(adjncy + start, adjncy + end, adjncy + cur_pos);
             std::copy(adjwgt + start, adjwgt + end, adjwgt + cur_pos);
             cur_pos += counts[i];
@@ -120,7 +108,7 @@ void idxToCSR(const idx_t *row_idx, const idx_t *col_idx, bool symmetric, Sparse
         printf("Number of weights: %d, totalAdj: %d\n", numberOfWeights, realNEdges);
     } else {
         // just do the sorting
-        for (idx_t i = 0; i < m.rows; ++i) {
+        for (idxtype  i = 0; i < m.rows; ++i) {
             sort(adjncy + xadj[i], adjncy + xadj[i + 1]);
         }
         m.nnz = 2 * realNEdges;
@@ -146,19 +134,19 @@ SparseMat readFile(const std::string &filename) {
     }
     fread(&m.total_rows, sizeof(int), 1, file);
     fread(&m.rows, sizeof(int), 1, file); // this value is not important
-    idx_t total_nnz;
-    fread(&total_nnz, sizeof(idx_t), 1, file);
+    idxtype  total_nnz;
+    fread(&total_nnz, sizeof(idxtype ), 1, file);
     bool has_weights = false;
     fread(&has_weights, sizeof(bool), 1, file);
-    long adj_start = (static_cast<long>(m.total_rows) + 2) * sizeof(idx_t) + 2 * sizeof(int) + sizeof(bool);
-    long adjwgt_start = adj_start + static_cast<long>(total_nnz) * sizeof(idx_t);
+    long adj_start = (static_cast<long>(m.total_rows) + 2) * sizeof(idxtype ) + 2 * sizeof(int) + sizeof(bool);
+    long adjwgt_start = adj_start + static_cast<long>(total_nnz) * sizeof(idxtype );
 
-    idx_t block_size = m.total_rows / size;
+    idxtype  block_size = m.total_rows / size;
     long displacement = rank * block_size;
-    idx_t count = rank == size - 1 ? m.total_rows - displacement : block_size;
+    idxtype  count = rank == size - 1 ? m.total_rows - displacement : block_size;
 
-    m.vtxdist = new idx_t[size + 1];
-    for (int i = 0; i < size; ++i) {
+    m.vtxdist = new idxtype [size + 1];
+    for (idxtype  i = 0; i < size; ++i) {
         m.vtxdist[i] = i * block_size;
     }
     m.vtxdist[size] = m.total_rows;
@@ -166,30 +154,30 @@ SparseMat readFile(const std::string &filename) {
     if (rank == 0) {
         printf("Current position: %ld\n", currentPos);
     }
-    fseek(file, displacement * sizeof(idx_t), SEEK_CUR);
-    m.xadj = new idx_t[count + 1];
+    fseek(file, displacement * sizeof(idxtype ), SEEK_CUR);
+    m.xadj = new idxtype [count + 1];
     for (int i = 0; i <= count; ++i) {
-        fread(m.xadj + i, sizeof(idx_t), 1, file);
+        fread(m.xadj + i, sizeof(idxtype ), 1, file);
     }
-    fseek(file, adj_start + m.xadj[0] * sizeof(idx_t), SEEK_SET);
+    fseek(file, adj_start + m.xadj[0] * sizeof(idxtype ), SEEK_SET);
     m.nnz = m.xadj[count] - m.xadj[0];
-    m.adjncy = new idx_t[m.nnz];
-    for (idx_t i = 0; i < m.nnz; ++i) {
-        fread(m.adjncy + i, sizeof(idx_t), 1, file);
+    m.adjncy = new idxtype [m.nnz];
+    for (idxtype  i = 0; i < m.nnz; ++i) {
+        fread(m.adjncy + i, sizeof(idxtype ), 1, file);
     }
     if (has_weights) {
-        fseek(file, adjwgt_start + m.xadj[0] * sizeof(idx_t), SEEK_SET);
-        m.adjwgt = new idx_t[m.nnz];
-        for (idx_t i = 0; i < m.nnz; ++i) {
-            fread(m.adjwgt + i, sizeof(idx_t), 1, file);
+        fseek(file, adjwgt_start + m.xadj[0] * sizeof(idxtype ), SEEK_SET);
+        m.adjwgt = new idxtype [m.nnz];
+        for (idxtype  i = 0; i < m.nnz; ++i) {
+            fread(m.adjwgt + i, sizeof(idxtype ), 1, file);
         }
     } else
         m.adjwgt = NULL;
     fclose(file);
     m.rows = count;
 //    sleep(5);
-    m.vwgt = new idx_t[m.rows];
-    idx_t first = m.xadj[0];
+    m.vwgt = new idxtype [m.rows];
+    idxtype  first = m.xadj[0];
     for (int i = 0; i <= m.rows; ++i) {
         m.xadj[i] -= first;
     }

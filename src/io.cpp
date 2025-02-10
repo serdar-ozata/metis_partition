@@ -8,7 +8,7 @@
 #include <sstream>
 #include <vector>
 #include <string>
-bool readMMF(const string &path, int &n, int &m, idx_t &nnz, idx_t *&row_idx, idx_t *&col_idx) {
+bool readMMF(const string &path, idxtype  &n, idxtype  &m, idxtype &nnz, idxtype  *&row_idx, idxtype  *&col_idx) {
     ifstream file(path);
     if (!file) {
         cout << "Error: Unable to open file" << endl;
@@ -26,9 +26,10 @@ bool readMMF(const string &path, int &n, int &m, idx_t &nnz, idx_t *&row_idx, id
     while (getline(file, line) && (line[0] == '%' || line.empty())) {}
     istringstream iss(line);
     iss >> n >> m >> nnz;
-    row_idx = new idx_t[nnz];
-    col_idx = new idx_t[nnz];
-    for (idx_t i = 0; i < nnz; i++) {
+    row_idx = new idxtype [nnz];
+    col_idx = new idxtype [nnz];
+    idxtype  self_loops = 0;
+    for (idxtype  i = 0; i < nnz; i++) {
         getline(file, line);
         istringstream iss(line);
         iss >> row_idx[i] >> col_idx[i];
@@ -37,9 +38,11 @@ bool readMMF(const string &path, int &n, int &m, idx_t &nnz, idx_t *&row_idx, id
         if (row_idx[i] == col_idx[i]) {
             i--;
             nnz--;
+            self_loops++;
         }
     }
     file.close();
+    printf("self loops: %d\n", self_loops);
     return symmetric;
 }
 
@@ -65,7 +68,7 @@ SparseMat readRBSerial(const string& filename) {
     dims >> matrix.rows >> matrix.total_rows >> matrix.nnz;
 
     // Step 2: Read the column pointers
-    matrix.xadj = new idx_t[matrix.rows + 1];
+    matrix.xadj = new idxtype[matrix.rows + 1];
     for (int i = 0; i < ptrLines; ++i) {
         std::getline(file, line);
         std::istringstream iss(line);
@@ -76,7 +79,7 @@ SparseMat readRBSerial(const string& filename) {
     }
 
     // Step 3: Read the row indices
-    matrix.adjncy = new idx_t[matrix.nnz];
+    matrix.adjncy = new idxtype[matrix.nnz];
     for (int i = 0; i < idxLines; ++i) {
         std::getline(file, line);
         std::istringstream iss(line);
@@ -89,7 +92,7 @@ SparseMat readRBSerial(const string& filename) {
     return matrix;
 }
 
-void writeInpart(const string input_file, const string output_path, const idx_t *partition, const idx_t nParts, SparseMat& mat) {
+void writeInpart(const string input_file, const string output_path, const int *partition, const idxtype nParts, SparseMat& mat) {
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -126,27 +129,26 @@ void writeInpart(const string input_file, const string output_path, const idx_t 
         perror("Error opening file");
         throw runtime_error("Error opening file");
     }
-    fwrite(all_partitions, sizeof(idx_t), total_rows, file);
+    fwrite(all_partitions, sizeof(int), total_rows, file);
     fclose(file);
     delete[] all_partitions;
     delete[] requests;
 }
 
-bool writeBinary(const string &path, int n, int m, idx_t nnz, idx_t* xadj, idx_t* adjncy, idx_t* adjwgt) {
+bool writeBinary(const string &path, idxtype n, idxtype nnz, idxtype* xadj, idxtype* adjncy, idxtype* adjwgt) {
     FILE* file = fopen(path.c_str(), "wb");
     if (file == NULL) {
         perror("Error opening file");
         return false;
     }
-    fwrite(&n, sizeof(int), 1, file);
-    fwrite(&m, sizeof(int), 1, file);
-    fwrite(&nnz, sizeof(idx_t), 1, file);
+    fwrite(&n, sizeof(ulong), 1, file);
+    fwrite(&nnz, sizeof(idxtype), 1, file);
     bool has_weights = adjwgt != NULL;
     fwrite(&has_weights, sizeof(bool), 1, file);
-    fwrite(xadj, sizeof(idx_t), m + 1, file);
-    fwrite(adjncy, sizeof(idx_t), nnz, file);
+    fwrite(xadj, sizeof(idxtype), n + 1, file);
+    fwrite(adjncy, sizeof(idxtype), nnz, file);
     if (adjwgt != NULL) {
-        fwrite(adjwgt, sizeof(idx_t), nnz, file);
+        fwrite(adjwgt, sizeof(idxtype), nnz, file);
     }
     fclose(file);
     return true;

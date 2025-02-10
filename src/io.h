@@ -9,10 +9,10 @@
 #include "typedef.h"
 using namespace std;
 
-bool readMMF(const string &path, int &n, int &m, idx_t &nnz, idx_t *&row_idx, idx_t *&col_idx);
+bool readMMF(const string &path, idxtype  &n, idxtype  &m, idxtype &nnz, idxtype *&row_idx, idxtype *&col_idx);
 
-bool writeBinary(const string &path, int n, int m, idx_t nnz, idx_t* xadj, idx_t* adjncy, idx_t* adjwgt);
+bool writeBinary(const string &path, idxtype n, idxtype nnz, idxtype* xadj, idxtype* adjncy, idxtype* adjwgt);
 
-void writeInpart(const string input_file, const string output_path, const idx_t *partition, const idx_t nParts, SparseMat& mat);
+void writeInpart(const string input_file, const string output_path, const int *partition, const idxtype nParts, SparseMat& mat);
 
 #endif //METIS_PARTITION_IO_H
