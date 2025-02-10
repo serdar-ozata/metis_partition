@@ -141,7 +141,7 @@ bool writeBinary(const string &path, idxtype n, idxtype nnz, idxtype* xadj, idxt
         perror("Error opening file");
         return false;
     }
-    fwrite(&n, sizeof(ulong), 1, file);
+    fwrite(&n, sizeof(idxtype), 1, file);
     fwrite(&nnz, sizeof(idxtype), 1, file);
     bool has_weights = adjwgt != NULL;
     fwrite(&has_weights, sizeof(bool), 1, file);

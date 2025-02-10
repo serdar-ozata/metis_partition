@@ -12,7 +12,7 @@
 #include "quicksort.h"
 
 using namespace std;
-int * partitionWithMetis(SparseMat&m, int  nParts) {
+int * partitionWithMetis(SparseMat&m, int nParts) {
     int  noEdgeCut = 0;
     idxtype  *partition = new idxtype [m.rows];
     idxtype  flag = 2;
@@ -21,7 +21,7 @@ int * partitionWithMetis(SparseMat&m, int  nParts) {
     }
     MPI_Comm comm = MPI_COMM_WORLD;
     double imbalance = 1.05;
-    ParHIPPartitionKWay(m.vtxdist, m.xadj, m.adjncy, m.vwgt, m.adjwgt, &nParts, &imbalance, true, 0, FASTSOCIAL, &noEdgeCut, partition, &comm);
+    ParHIPPartitionKWay(m.vtxdist, m.xadj, m.adjncy, m.vwgt, m.adjwgt, &nParts, &imbalance, false, 0, FASTSOCIAL, &noEdgeCut, partition, &comm);
     // convert to int*
     int* int_partition = new int[m.rows];
     for (int i = 0; i < m.rows; ++i) {
@@ -132,14 +132,13 @@ SparseMat readFile(const std::string &filename) {
         perror("Error opening file");
         throw runtime_error("Error opening file");
     }
-    fread(&m.total_rows, sizeof(int), 1, file);
-    fread(&m.rows, sizeof(int), 1, file); // this value is not important
-    idxtype  total_nnz;
+    fread(&m.total_rows, sizeof(idxtype), 1, file);
+    idxtype total_nnz;
     fread(&total_nnz, sizeof(idxtype ), 1, file);
     bool has_weights = false;
     fread(&has_weights, sizeof(bool), 1, file);
-    long adj_start = (static_cast<long>(m.total_rows) + 2) * sizeof(idxtype ) + 2 * sizeof(int) + sizeof(bool);
-    long adjwgt_start = adj_start + static_cast<long>(total_nnz) * sizeof(idxtype );
+    long adj_start = (static_cast<long>(m.total_rows) + 3) * sizeof(idxtype) + sizeof(bool);
+    long adjwgt_start = adj_start + static_cast<long>(total_nnz) * sizeof(idxtype);
 
     idxtype  block_size = m.total_rows / size;
     long displacement = rank * block_size;
