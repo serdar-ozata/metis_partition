@@ -13,6 +13,6 @@ void idxToCSR(const idxtype *row_idx, const idxtype  *col_idx, bool symmetric, S
 
 SparseMat readFile(const std::string &filename);
 
-int  *partitionWithMetis(SparseMat &m, int  nParts);
+idxtype *partitionWithMetis(SparseMat &m, int  nParts);
 
 #endif //METIS_PARTITION_PARTITION_H

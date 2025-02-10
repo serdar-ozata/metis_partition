@@ -12,7 +12,7 @@
 #include "quicksort.h"
 
 using namespace std;
-int * partitionWithMetis(SparseMat&m, int nParts) {
+idxtype * partitionWithMetis(SparseMat&m, int nParts) {
     int  noEdgeCut = 0;
     idxtype  *partition = new idxtype [m.rows];
     idxtype  flag = 2;
@@ -23,12 +23,7 @@ int * partitionWithMetis(SparseMat&m, int nParts) {
     double imbalance = 1.05;
     ParHIPPartitionKWay(m.vtxdist, m.xadj, m.adjncy, m.vwgt, m.adjwgt, &nParts, &imbalance, false, 0, FASTSOCIAL, &noEdgeCut, partition, &comm);
     // convert to int*
-    int* int_partition = new int[m.rows];
-    for (int i = 0; i < m.rows; ++i) {
-        int_partition[i] = partition[i];
-    }
-    delete[] partition;
-    return int_partition;
+    return partition;
 }
 
 void idxToCSR(const idxtype  *row_idx, const idxtype  *col_idx, bool symmetric, SparseMat &m) {
@@ -134,7 +129,7 @@ SparseMat readFile(const std::string &filename) {
     }
     fread(&m.total_rows, sizeof(idxtype), 1, file);
     idxtype total_nnz;
-    fread(&total_nnz, sizeof(idxtype ), 1, file);
+    fread(&total_nnz, sizeof(idxtype), 1, file);
     bool has_weights = false;
     fread(&has_weights, sizeof(bool), 1, file);
     long adj_start = (static_cast<long>(m.total_rows) + 3) * sizeof(idxtype) + sizeof(bool);

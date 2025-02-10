@@ -13,6 +13,6 @@ bool readMMF(const string &path, idxtype  &n, idxtype  &m, idxtype &nnz, idxtype
 
 bool writeBinary(const string &path, idxtype n, idxtype nnz, idxtype* xadj, idxtype* adjncy, idxtype* adjwgt);
 
-void writeInpart(const string input_file, const string output_path, const int *partition, const idxtype nParts, SparseMat& mat);
+void writeInpart(const string input_file, const string output_path, const idxtype *partition, const idxtype nParts, SparseMat& mat);
 
 #endif //METIS_PARTITION_IO_H

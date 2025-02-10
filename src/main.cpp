@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
         }
         MPI_Barrier(MPI_COMM_WORLD);
     }
-    int *partition = partitionWithMetis(mat, n_parts);
+    idxtype *partition = partitionWithMetis(mat, n_parts);
     writeInpart(input_file, output_path, partition, n_parts, mat);
 
     // free memory
