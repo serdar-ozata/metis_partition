@@ -57,18 +57,12 @@ int main(int argc, char** argv) {
                 idxtype next_recv_vtx = adjncy[j + 1];
                 if (recv_vtx == next_recv_vtx) {
                     counts[i]--;
-                    if (adjwgt[j] && adjwgt[j + 1]) {
-                        cout << "Error: Duplicate edges with weights" << endl;
-                        cout << "send_vtx: " << i << ", recv_vtx: " << recv_vtx <<  ", next_recv_vtx: " << next_recv_vtx << endl;
-                    }
                     adjwgt[j] |= adjwgt[j + 1]; // if the next one is 1, make it 1
                     // move the remaining elements to one position left
-                    if (j + 2 < xadj[i] + counts[i]) {
-//                        std::copy(adjncy + j + 2, adjncy + xadj[i + 1], adjncy + j + 1);
-//                        std::copy(adjwgt + j + 2, adjwgt + xadj[i + 1], adjwgt + j + 1);
-                        size_t move_n = (xadj[i + 1] - j - 2) * sizeof(idxtype);
-                        memmove(adjncy + j + 1, adjncy + j + 2, move_n);
-                        memmove(adjwgt + j + 1, adjwgt + j + 2, move_n);
+                    size_t remaining = counts[i] + xadj[i] - j - 1;
+                    if (remaining > 0) {
+                        memmove(adjncy + j + 1, adjncy + j + 2, remaining * sizeof(idxtype));
+                        memmove(adjwgt + j + 1, adjwgt + j + 2, remaining * sizeof(idxtype));
                     }
 
                 }
