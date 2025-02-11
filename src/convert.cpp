@@ -102,14 +102,14 @@ int main(int argc, char** argv) {
     // debug
     for (idxtype i = 0; i < m; ++i) {
         for (idxtype j = xadj[i]; j < xadj[i + 1]; ++j) {
-            idxtype  other = adjncy[j];
+            idxtype other = adjncy[j];
             if (other > ( 1ull << 60)) {
                 cout << "Error: Overflown index" << endl;
             }
             if (i < other) {
                 bool ret = binary_search(adjncy + xadj[other], adjncy + xadj[other + 1], i);
                 if (!ret) {
-                    cout << "Error: Missing edge" << endl;
+                    cout << "Error: Missing edge: " << i << " " << other << endl;
                 }
             } else if (i == other) {
                 cout << "Error: Self loop" << endl;
