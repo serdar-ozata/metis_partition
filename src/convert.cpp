@@ -98,12 +98,12 @@ int main(int argc, char** argv) {
     for (idxtype i = 0; i < m; ++i) {
         for (idxtype j = xadj[i]; j < xadj[i + 1]; ++j) {
             idxtype  other = adjncy[j];
-            if (other < 0) {
+            if (other > ( 1ull << 60)) {
                 cout << "Error: Overflown index" << endl;
             }
             if (i < other) {
-                idxtype ret = binary_search(adjncy + xadj[other], adjncy + xadj[other + 1], i);
-                if (ret == -1) {
+                bool ret = binary_search(adjncy + xadj[other], adjncy + xadj[other + 1], i);
+                if (!ret) {
                     cout << "Error: Missing edge" << endl;
                 }
             } else if (i == other) {

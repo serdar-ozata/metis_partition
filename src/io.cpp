@@ -103,7 +103,7 @@ void writeInpart(const string input_file, const string output_path, const idxtyp
     idxtype rows = mat.rows;
     deleteSparseMat(mat);
     if (rank == 0) {
-        all_partitions = new idxtype [total_rows];
+        all_partitions = new idxtype[total_rows];
         requests = new MPI_Request[size - 1];
         int block_size = total_rows / size;
         for (int i = 1; i < size; i++) {

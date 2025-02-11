@@ -21,8 +21,7 @@ idxtype * partitionWithMetis(SparseMat&m, int nParts) {
     }
     MPI_Comm comm = MPI_COMM_WORLD;
     double imbalance = 1.05;
-    ParHIPPartitionKWay(m.vtxdist, m.xadj, m.adjncy, m.vwgt, m.adjwgt, &nParts, &imbalance, false, 0, FASTSOCIAL, &noEdgeCut, partition, &comm);
-    // convert to int*
+    ParHIPPartitionKWay(m.vtxdist, m.xadj, m.adjncy, m.vwgt, m.adjwgt, &nParts, &imbalance, false, 42, FASTSOCIAL, &noEdgeCut, partition, &comm);
     return partition;
 }
 
@@ -45,7 +44,7 @@ void idxToCSR(const idxtype  *row_idx, const idxtype  *col_idx, bool symmetric, 
     idxtype  *adjwgt = NULL;
     if (not symmetric) {
         adjwgt = new idxtype [realNEdges * 2];
-        memset(adjwgt, 0, sizeof(idxtype ) * realNEdges * 2);
+        memset(adjwgt, 0, sizeof(idxtype) * realNEdges * 2);
     }
     for (idxtype  i = 0; i < realNEdges; ++i) {
         idxtype  send_vtx = col_idx[i], recv_vtx = row_idx[i];
@@ -148,22 +147,22 @@ SparseMat readFile(const std::string &filename) {
     if (rank == 0) {
         printf("Current position: %ld\n", currentPos);
     }
-    fseek(file, displacement * sizeof(idxtype ), SEEK_CUR);
+    fseek(file, displacement * sizeof(idxtype), SEEK_CUR);
     m.xadj = new idxtype [count + 1];
     for (int i = 0; i <= count; ++i) {
-        fread(m.xadj + i, sizeof(idxtype ), 1, file);
+        fread(m.xadj + i, sizeof(idxtype), 1, file);
     }
-    fseek(file, adj_start + m.xadj[0] * sizeof(idxtype ), SEEK_SET);
+    fseek(file, adj_start + m.xadj[0] * sizeof(idxtype), SEEK_SET);
     m.nnz = m.xadj[count] - m.xadj[0];
     m.adjncy = new idxtype [m.nnz];
     for (idxtype  i = 0; i < m.nnz; ++i) {
-        fread(m.adjncy + i, sizeof(idxtype ), 1, file);
+        fread(m.adjncy + i, sizeof(idxtype), 1, file);
     }
     if (has_weights) {
-        fseek(file, adjwgt_start + m.xadj[0] * sizeof(idxtype ), SEEK_SET);
+        fseek(file, adjwgt_start + m.xadj[0] * sizeof(idxtype), SEEK_SET);
         m.adjwgt = new idxtype [m.nnz];
         for (idxtype  i = 0; i < m.nnz; ++i) {
-            fread(m.adjwgt + i, sizeof(idxtype ), 1, file);
+            fread(m.adjwgt + i, sizeof(idxtype), 1, file);
         }
     } else
         m.adjwgt = NULL;
