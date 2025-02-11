@@ -66,8 +66,9 @@ int main(int argc, char** argv) {
                     if (j + 2 < xadj[i] + counts[i]) {
 //                        std::copy(adjncy + j + 2, adjncy + xadj[i + 1], adjncy + j + 1);
 //                        std::copy(adjwgt + j + 2, adjwgt + xadj[i + 1], adjwgt + j + 1);
-                        std::move(adjncy + j + 2, adjncy + xadj[i + 1], adjncy + j + 1);
-                        std::move(adjwgt + j + 2, adjwgt + xadj[i + 1], adjwgt + j + 1);
+                        size_t move_n = (xadj[i + 1] - j - 2) * sizeof(idxtype);
+                        memmove(adjncy + j + 1, adjncy + j + 2, move_n);
+                        memmove(adjwgt + j + 1, adjwgt + j + 2, move_n);
                     }
 
                 }
@@ -77,11 +78,11 @@ int main(int argc, char** argv) {
         idxtype cur_pos = 0;
         for (idxtype i = 0; i < m; ++i) {
             idxtype start = xadj[i];
-            idxtype end = xadj[i] + counts[i];
 //            std::copy(adjncy + start, adjncy + end, adjncy + cur_pos);
 //            std::copy(adjwgt + start, adjwgt + end, adjwgt + cur_pos);
-            std::move(adjncy + start, adjncy + end, adjncy + cur_pos);
-            std::move(adjwgt + start, adjwgt + end, adjwgt + cur_pos);
+            size_t move_n = counts[i] * sizeof(idxtype);
+            memmove(adjncy + cur_pos, adjncy + start, move_n);
+            memmove(adjwgt + cur_pos, adjwgt + start, move_n);
             cur_pos += counts[i];
             xadj[i] = cur_pos - counts[i];
         }
