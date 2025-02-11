@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
     idxtype  *row_idx, *col_idx;
     bool symmetric = readMMF(filename, n, m, nnz, row_idx, col_idx);
     idxtype  *counts = new idxtype[m];
-    memset(counts, 0, sizeof(idxtype ) * m);
+    memset(counts, 0, sizeof(idxtype) * m);
     idxtype *xadj = new idxtype [m + 1];
     idxtype realNEdges = nnz;
     idxtype *adjncy = new idxtype [realNEdges * 2];
@@ -64,8 +64,10 @@ int main(int argc, char** argv) {
                     adjwgt[j] |= adjwgt[j + 1]; // if the next one is 1, make it 1
                     // move the remaining elements to one position left
                     if (j + 2 < xadj[i] + counts[i]) {
-                        std::copy(adjncy + j + 2, adjncy + xadj[i + 1], adjncy + j + 1);
-                        std::copy(adjwgt + j + 2, adjwgt + xadj[i + 1], adjwgt + j + 1);
+//                        std::copy(adjncy + j + 2, adjncy + xadj[i + 1], adjncy + j + 1);
+//                        std::copy(adjwgt + j + 2, adjwgt + xadj[i + 1], adjwgt + j + 1);
+                        std::move(adjncy + j + 2, adjncy + xadj[i + 1], adjncy + j + 1);
+                        std::move(adjwgt + j + 2, adjwgt + xadj[i + 1], adjwgt + j + 1);
                     }
 
                 }
@@ -76,8 +78,10 @@ int main(int argc, char** argv) {
         for (idxtype i = 0; i < m; ++i) {
             idxtype start = xadj[i];
             idxtype end = xadj[i] + counts[i];
-            std::copy(adjncy + start, adjncy + end, adjncy + cur_pos);
-            std::copy(adjwgt + start, adjwgt + end, adjwgt + cur_pos);
+//            std::copy(adjncy + start, adjncy + end, adjncy + cur_pos);
+//            std::copy(adjwgt + start, adjwgt + end, adjwgt + cur_pos);
+            std::move(adjncy + start, adjncy + end, adjncy + cur_pos);
+            std::move(adjwgt + start, adjwgt + end, adjwgt + cur_pos);
             cur_pos += counts[i];
             xadj[i] = cur_pos - counts[i];
         }
