@@ -14,16 +14,10 @@ int main(int argc, char **argv) {
     string input_file = argv[1];
     int n_parts = stoi(argv[2]);
     string output_path = argv[3];
-    SparseMat mat = readFile(input_file);
-    int rank, size;
+    int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    for (int i = 0; i < size; ++i) {
-        if (rank == i) {
-            cout << "rows: " << mat.rows << ", cols: " << mat.total_rows << ", nnz: " << mat.nnz << " rank: " << rank << endl;
-        }
-        MPI_Barrier(MPI_COMM_WORLD);
-    }
+    if (rank == 0) printAvailMem();
+    SparseMat mat = readFile(input_file);
     idxtype *partition = partitionWithMetis(mat, n_parts);
     writeInpart(input_file, output_path, partition, n_parts, mat);
 

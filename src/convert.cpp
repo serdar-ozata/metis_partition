@@ -11,6 +11,7 @@ int main(int argc, char** argv) {
         std::cerr << "Usage: " << argv[0] << " <input_file> <output_path>" << std::endl;
         return 1;
     }
+    printAvailMem();
     string filename = argv[1];
     idxtype n, m;
     idxtype nnz;
@@ -64,7 +65,6 @@ int main(int argc, char** argv) {
                         memmove(adjncy + j + 1, adjncy + j + 2, remaining * sizeof(idxtype));
                         memmove(adjwgt + j + 1, adjwgt + j + 2, remaining * sizeof(idxtype));
                     }
-
                 }
             }
         }

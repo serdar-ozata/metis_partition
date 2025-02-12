@@ -27,4 +27,6 @@ void deleteSparseMat(SparseMat &m);
 
 void printMat(SparseMat &m, bool serial);
 
+void printAvailMem();
+
 #endif //METIS_PARTITION_TYPEDEF_H

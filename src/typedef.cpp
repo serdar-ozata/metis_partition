@@ -3,6 +3,7 @@
 //
 #include "typedef.h"
 #include <iostream>
+#include <sys/sysinfo.h>
 using namespace std;
 void deleteSparseMat(SparseMat &m) {
     delete[] m.xadj;
@@ -51,4 +52,9 @@ void printMat(SparseMat &m, bool serial) {
         if (!serial)
             MPI_Barrier(MPI_COMM_WORLD);
     }
+}
+void printAvailMem() {
+    struct sysinfo info;
+    sysinfo(&info);
+    cout << "Total RAM: " << info.totalram << " Free RAM: " << info.freeram << " Shared RAM: " << info.sharedram << endl;
 }
