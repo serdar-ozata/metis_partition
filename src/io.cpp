@@ -27,6 +27,7 @@ bool readMMF(const string &path, idxtype  &n, idxtype  &m, idxtype &nnz, idxtype
     istringstream iss(line);
     iss >> n >> m >> nnz;
     printf("n: %llu, m: %llu, nnz: %llu\n", n, m, nnz);
+    flush(cout);
     row_idx = new idxtype [nnz];
     col_idx = new idxtype [nnz];
     idxtype  self_loops = 0;
