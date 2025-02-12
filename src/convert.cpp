@@ -17,6 +17,7 @@ int main(int argc, char** argv) {
     idxtype nnz;
     idxtype  *row_idx, *col_idx;
     bool symmetric = readMMF(filename, n, m, nnz, row_idx, col_idx);
+    printAvailMem();
     idxtype  *counts = new idxtype[m];
     memset(counts, 0, sizeof(idxtype) * m);
     idxtype *xadj = new idxtype [m + 1];
