@@ -6,7 +6,7 @@
 #define METIS_PARTITION_QUICKSORT_H
 #include <utility>
 template <typename T>
-void insertion_sort_with_weights(T* adjncy, T* adjwght, int low, int high) {
+void insertion_sort_with_weights(T* adjncy, T* adjwght, T low, T high) {
     for (int i = low + 1; i <= high; ++i) {
         T key = adjncy[i];
         T key_w = adjwght[i];
@@ -21,7 +21,7 @@ void insertion_sort_with_weights(T* adjncy, T* adjwght, int low, int high) {
     }
 }
 template <typename T>
-int partition(T* adjncy, T* adjwght, int low, int high) {
+int partition(T* adjncy, T* adjwght, T low, T high) {
     int pivot_idx = (rand() % (high - low + 1)) + low;
     std::swap(adjncy[pivot_idx], adjncy[high]);
     std::swap(adjwght[pivot_idx], adjwght[high]);
@@ -40,13 +40,13 @@ int partition(T* adjncy, T* adjwght, int low, int high) {
 }
 
 template <typename T>
-void quicksort(T* adjncy, T* adjwght, int low, int high) {
-    const int threshold = 2; // Threshold for small subarrays
+void quicksort(T* adjncy, T* adjwght, T low, T high) {
+    const T threshold = 2; // Threshold for small subarrays
     if (low < high) {
         if (high - low + 1 < threshold) {
             insertion_sort_with_weights(adjncy, adjwght, low, high);
         } else {
-            int pivotIndex = partition(adjncy, adjwght, low, high);
+            T pivotIndex = partition(adjncy, adjwght, low, high);
             quicksort(adjncy, adjwght, low, pivotIndex - 1);
             quicksort(adjncy, adjwght, pivotIndex + 1, high);
         }

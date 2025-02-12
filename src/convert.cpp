@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
     if (not symmetric) {
         // remove duplicates
         for (idxtype i = 0; i < m; ++i) {
-            quicksort(adjncy, adjwgt, xadj[i], xadj[i + 1] - 1);
+            quicksort(adjncy, adjwgt, xadj[i], xadj[i + 1] - 1ull);
             idxtype j;
             for (j = xadj[i]; j < xadj[i] + counts[i] - 1; ++j) {
                 idxtype recv_vtx = adjncy[j];
@@ -78,8 +78,8 @@ int main(int argc, char** argv) {
             size_t move_n = counts[i] * sizeof(idxtype);
             memmove(adjncy + cur_pos, adjncy + start, move_n);
             memmove(adjwgt + cur_pos, adjwgt + start, move_n);
+            xadj[i] = cur_pos;
             cur_pos += counts[i];
-            xadj[i] = cur_pos - counts[i];
         }
         xadj[m] = cur_pos;
         realNEdges = cur_pos;
