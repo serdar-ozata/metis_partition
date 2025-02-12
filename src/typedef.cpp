@@ -56,5 +56,6 @@ void printMat(SparseMat &m, bool serial) {
 void printAvailMem() {
     struct sysinfo info;
     sysinfo(&info);
-    cout << "Total RAM: " << info.totalram << " Free RAM: " << info.freeram << " Shared RAM: " << info.sharedram << endl;
+    const ulong GB = 1024 * 1024 * 1024;
+    cout << "Total RAM: " << info.totalram / GB << " Free RAM: " << info.freeram / GB << " Shared RAM: " << info.sharedram / GB << endl;
 }
