@@ -35,12 +35,14 @@ idxtype * partitionWithMetis(SparseMat&m, int nParts) {
         }
         for (int i = 0; i < nParts; ++i) {
             if (!nPartsEmpty[i]) {
-                delete[] nPartsEmpty;
-                return partition;
+                goto out;
             }
         }
         tryCount++;
     }
+    out:;
+    delete[] nPartsEmpty;
+    cout << "tryCount: " << tryCount << endl;
     return partition;
 }
 

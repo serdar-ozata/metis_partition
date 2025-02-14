@@ -96,24 +96,24 @@ int main(int argc, char** argv) {
     }
     delete[] row_idx;
     delete[] col_idx;
-    printf("Writing binary file\n");
+    cout << "Writing binary file" << endl;
     // debug
-    for (idxtype i = 0; i < m; ++i) {
-        for (idxtype j = xadj[i]; j < xadj[i + 1]; ++j) {
-            idxtype other = adjncy[j];
-            if (other > ( 1ull << 60)) {
-                cout << "Error: Overflown index" << endl;
-            }
-            if (i < other) {
-                bool ret = binary_search(adjncy + xadj[other], adjncy + xadj[other + 1], i);
-                if (!ret) {
-                    cout << "Error: Missing edge: " << i << " " << other << endl;
-                }
-            } else if (i == other) {
-                cout << "Error: Self loop" << endl;
-            } else break;
-        }
-    }
+//    for (idxtype i = 0; i < m; ++i) {
+//        for (idxtype j = xadj[i]; j < xadj[i + 1]; ++j) {
+//            idxtype other = adjncy[j];
+//            if (other > ( 1ull << 60)) {
+//                cout << "Error: Overflown index" << endl;
+//            }
+//            if (i < other) {
+//                bool ret = binary_search(adjncy + xadj[other], adjncy + xadj[other + 1], i);
+//                if (!ret) {
+//                    cout << "Error: Missing edge: " << i << " " << other << endl;
+//                }
+//            } else if (i == other) {
+//                cout << "Error: Self loop" << endl;
+//            } else break;
+//        }
+//    }
     // debug end
     string out_filename = argv[2];
     if (out_filename.back() != '/') {
