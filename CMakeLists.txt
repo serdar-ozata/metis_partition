@@ -30,6 +30,7 @@ target_link_libraries(metis_partition PRIVATE
 add_executable(convert src/convert.cpp src/io.cpp src/io.h src/quicksort.h src/quicksort.cpp src/typedef.h src/typedef.cpp)
 target_link_libraries(convert PRIVATE
         ${MPI_C_LIBRARIES}
+        OpenMP::OpenMP_CXX
         "${KAHIP_PATH}/libparhip.a"
         "${KAHIP_PATH}/parallel/libkahip.a"
 )
