@@ -41,7 +41,7 @@ int partition(T* adjncy, T* adjwght, T low, T high) {
 
 template <typename T>
 void quicksort(T* adjncy, T* adjwght, T low, T high) {
-    const T threshold = 2; // Threshold for small subarrays
+    const T threshold = 30; // Threshold for small subarrays
     if (low < high) {
         if (high - low + 1 < threshold) {
             insertion_sort_with_weights(adjncy, adjwght, low, high);

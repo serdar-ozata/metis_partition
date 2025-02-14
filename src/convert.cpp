@@ -33,11 +33,11 @@ int main(int argc, char** argv) {
     for (idxtype i = 0; i < m; ++i) {
         xadj[i + 1] = xadj[i] + counts[i];
     }
-    memset(counts, 0, sizeof(idxtype ) * m);
+    memset(counts, 0, sizeof(idxtype) * m);
     idxtype *adjwgt = NULL;
     if (not symmetric) {
         adjwgt = new idxtype [realNEdges * 2];
-        memset(adjwgt, 0, sizeof(idxtype ) * realNEdges * 2);
+        memset(adjwgt, 0, sizeof(idxtype) * realNEdges * 2);
     }
     for (idxtype i = 0; i < realNEdges; ++i) {
         idxtype send_vtx = col_idx[i], recv_vtx = row_idx[i];
@@ -52,7 +52,8 @@ int main(int argc, char** argv) {
     cout << "Sorting" << endl;
     if (not symmetric) {
         // remove duplicates
-        #pragma omp parallel for
+        int local_sorts = 0;
+        #pragma omp parallel for firstprivate(local_sorts)
         for (idxtype i = 0; i < m; ++i) {
             quicksort(adjncy, adjwgt, xadj[i], xadj[i + 1] - 1ull);
             idxtype j;
@@ -69,6 +70,10 @@ int main(int argc, char** argv) {
                         memmove(adjwgt + j + 1, adjwgt + j + 2, remaining * sizeof(idxtype));
                     }
                 }
+            }
+            local_sorts++;
+            if (local_sorts % 1000 == 0) {
+                cout << "Local sorts: " << local_sorts << endl;
             }
         }
         // now move the unique elements to the beginning
