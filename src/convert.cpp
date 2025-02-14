@@ -6,6 +6,7 @@
 #include <algorithm>
 #include "io.h"
 #include "quicksort.h"
+#include <omp.h>
 int main(int argc, char** argv) {
     if (argc != 3) {
         std::cerr << "Usage: " << argv[0] << " <input_file> <output_path>" << std::endl;
@@ -48,9 +49,10 @@ int main(int argc, char** argv) {
         counts[send_vtx]++;
         counts[recv_vtx]++;
     }
-    printf("Sorting\n");
+    cout << "Sorting" << endl;
     if (not symmetric) {
         // remove duplicates
+        #pragma omp parallel for
         for (idxtype i = 0; i < m; ++i) {
             quicksort(adjncy, adjwgt, xadj[i], xadj[i + 1] - 1ull);
             idxtype j;
@@ -86,6 +88,7 @@ int main(int argc, char** argv) {
         nnz = realNEdges;
     } else {
         // just do the sorting
+        #pragma omp parallel for
         for (idxtype i = 0; i < m; ++i) {
             sort(adjncy + xadj[i], adjncy + xadj[i + 1]);
         }

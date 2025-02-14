@@ -10,6 +10,7 @@
 #include <csignal>
 #include "io.h"
 #include "quicksort.h"
+#include <random>
 
 using namespace std;
 idxtype * partitionWithMetis(SparseMat&m, int nParts) {
@@ -21,7 +22,25 @@ idxtype * partitionWithMetis(SparseMat&m, int nParts) {
     }
     MPI_Comm comm = MPI_COMM_WORLD;
     double imbalance = 1.05;
-    ParHIPPartitionKWay(m.vtxdist, m.xadj, m.adjncy, m.vwgt, m.adjwgt, &nParts, &imbalance, false, 42, FASTSOCIAL, &noEdgeCut, partition, &comm);
+    srand(time(NULL));
+    bool* nPartsEmpty = new bool[nParts];
+    int tryCount = 0;
+    const int MAX_TRIES = 10;
+    while (tryCount < MAX_TRIES) {
+        unsigned int seed = rand();
+        ParHIPPartitionKWay(m.vtxdist, m.xadj, m.adjncy, m.vwgt, m.adjwgt, &nParts, &imbalance, false, seed, FASTSOCIAL, &noEdgeCut, partition, &comm);
+        memset(nPartsEmpty, 0, sizeof(bool) * nParts);
+        for (int i = 0; i < m.rows; ++i) {
+            nPartsEmpty[partition[i]] = true;
+        }
+        for (int i = 0; i < nParts; ++i) {
+            if (!nPartsEmpty[i]) {
+                delete[] nPartsEmpty;
+                return partition;
+            }
+        }
+        tryCount++;
+    }
     return partition;
 }
 

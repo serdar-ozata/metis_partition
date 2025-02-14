@@ -3,7 +3,7 @@ project(metis_partition)
 set(CMAKE_CXX_STANDARD 20)
 
 find_package(MPI REQUIRED)
-
+find_package(OpenMP REQUIRED)
 
 #get kahip deploy path
 if (NOT DEFINED KAHIP_PATH)
@@ -32,7 +32,6 @@ target_link_libraries(convert PRIVATE
         ${MPI_C_LIBRARIES}
         "${KAHIP_PATH}/libparhip.a"
         "${KAHIP_PATH}/parallel/libkahip.a"
-
 )
 
 target_include_directories(metis_partition PRIVATE ${MPI_C_INCLUDE_PATH})
