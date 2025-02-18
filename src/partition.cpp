@@ -14,6 +14,11 @@
 
 using namespace std;
 idxtype * partitionWithMetis(SparseMat&m, int nParts) {
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    if (rank == 0) {
+        cout << "Partitioning with KaHIP" << endl;
+    }
     int  noEdgeCut = 0;
     idxtype  *partition = new idxtype [m.rows];
     idxtype  flag = 2;
